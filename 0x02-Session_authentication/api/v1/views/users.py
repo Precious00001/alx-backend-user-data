@@ -14,6 +14,7 @@ def view_all_users() -> str:
     all_users = [user.to_json() for user in User.all()]
     return jsonify(all_users)
 
+
 # Route to get one user by ID
 @app_views.route('/users/<user_id>', methods=['GET'], strict_slashes=False)
 def view_one_user(user_id: str = None) -> str:
@@ -37,6 +38,7 @@ def view_one_user(user_id: str = None) -> str:
         abort(404)
     return jsonify(user.to_json())
 
+
 # Route to delete a user by ID
 @app_views.route('/users/<user_id>', methods=['DELETE'], strict_slashes=False)
 def delete_user(user_id: str = None) -> str:
@@ -54,6 +56,7 @@ def delete_user(user_id: str = None) -> str:
         abort(404)
     user.remove()
     return jsonify({}), 200
+
 
 # Route to create a new user
 @app_views.route('/users', methods=['POST'], strict_slashes=False)
@@ -92,6 +95,7 @@ def create_user() -> str:
         except Exception as e:
             error_msg = "Can't create User: {}".format(e)
     return jsonify({'error': error_msg}), 400
+
 
 # Route to update a user by ID
 @app_views.route('/users/<user_id>', methods=['PUT'], strict_slashes=False)

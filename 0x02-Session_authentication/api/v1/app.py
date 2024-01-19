@@ -33,21 +33,25 @@ if auth_type == 'session_exp_auth':
 if auth_type == 'session_db_auth':
     auth = SessionDBAuth()
 
+
 # Define error handlers for 404, 401, and 403 errors
 @app.errorhandler(404)
 def not_found(error) -> str:
     """Not found handler."""
     return jsonify({"error": "Not found"}), 404
 
+
 @app.errorhandler(401)
 def unauthorized(error) -> str:
     """Unauthorized handler."""
     return jsonify({"error": "Unauthorized"}), 401
 
+
 @app.errorhandler(403)
 def forbidden(error) -> str:
     """Forbidden handler."""
     return jsonify({"error": "Forbidden"}), 403
+
 
 # Define a function to authenticate the user before processing a request
 @app.before_request
@@ -75,6 +79,7 @@ def authenticate_user():
                 abort(403)
             # Attach the authenticated user to the request
             request.current_user = user
+
 
 # Run the Flask app if the script is executed
 if __name__ == "__main__":
