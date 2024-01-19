@@ -4,6 +4,7 @@ from api.v1.views import app_views
 from flask import abort, jsonify, request
 from models.user import User
 
+
 # Route to get all users
 @app_views.route('/users', methods=['GET'], strict_slashes=False)
 def view_all_users() -> str:
@@ -71,25 +72,25 @@ def create_user() -> str:
       - User object JSON represented.
       - 400 if can't create the new User.
     """
-    rjct = None
+    rj = None
     error_msg = None
     try:
-        rjct = request.get_json()
+        rj = request.get_json()
     except Exception as e:
-        rjct = None
-    if rjct is None:
+        rj = None
+    if rj is None:
         error_msg = "Wrong format"
-    if error_msg is None and rjct.get("email", "") == "":
+    if error_msg is None and rj.get("email", "") == "":
         error_msg = "email missing"
-    if error_msg is None and rjct.get("password", "") == "":
+    if error_msg is None and rj.get("password", "") == "":
         error_msg = "password missing"
     if error_msg is None:
         try:
             user = User()
-            user.email = rjct.get("email")
-            user.password = rjct.get("password")
-            user.first_name = rjct.get("first_name")
-            user.last_name = rjct.get("last_name")
+            user.email = rj.get("email")
+            user.password = rj.get("password")
+            user.first_name = rj.get("first_name")
+            user.last_name = rj.get("last_name")
             user.save()
             return jsonify(user.to_json()), 201
         except Exception as e:
@@ -116,16 +117,16 @@ def update_user(user_id: str = None) -> str:
     user = User.get(user_id)
     if user is None:
         abort(404)
-    rjct = None
+    rj = None
     try:
-        rjct = request.get_json()
+        rj = request.get_json()
     except Exception as e:
-        rjct = None
-    if rjct is None:
+        rj = None
+    if rj is None:
         return jsonify({'error': "Wrong format"}), 400
-    if rjct.get('first_name') is not None:
-        user.first_name = rjct.get('first_name')
-    if rjct.get('last_name') is not None:
-        user.last_name = rjct.get('last_name')
+    if rj.get('first_name') is not None:
+        user.first_name = rj.get('first_name')
+    if rj.get('last_name') is not None:
+        user.last_name = rj.get('last_name')
     user.save()
     return jsonify(user.to_json()), 200
