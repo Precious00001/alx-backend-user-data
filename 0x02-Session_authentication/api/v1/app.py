@@ -1,88 +1,91 @@
 #!/usr/bin/env python3
-"""Route module for the API."""
-import os
+"""
+Route module for the API
+"""
 from os import getenv
+from api.v1.views import app_views
 from flask import Flask, jsonify, abort, request
 from flask_cors import (CORS, cross_origin)
 
-from api.v1.views import app_views
-from api.v1.auth.auth import Auth
-from api.v1.auth.basic_auth import BasicAuth
-from api.v1.auth.session_auth import SessionAuth
-from api.v1.auth.session_db_auth import SessionDBAuth
-from api.v1.auth.session_exp_auth import SessionExpAuth
-
 # Create a Flask application
 app = Flask(__name__)
-# Register the Blueprint for API views
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
+
+# Register the Blueprint for the API views
 app.register_blueprint(app_views)
-# Enable Cross-Origin Resource Sharing (CORS) for the entire app
+
+# Enable CORS for the entire application
 CORS(app, resources={r"/api/v1/*": {"origins": "*"}})
 
-# Initialize auth based on the chosen authentication type
+# Initialize authentication based on the specified AUTH_TYPE
 auth = None
-auth_type = getenv('AUTH_TYPE', 'auth')
+auth_type = getenv('AUTH_TYPE')
 if auth_type == 'auth':
+    from api.v1.auth.auth import Auth
     auth = Auth()
-if auth_type == 'basic_auth':
+elif auth_type == 'basic_auth':
+    from api.v1.auth.basic_auth import BasicAuth
     auth = BasicAuth()
-if auth_type == 'session_auth':
+elif auth_type == 'session_auth':
+    from api.v1.auth.session_auth import SessionAuth
     auth = SessionAuth()
-if auth_type == 'session_exp_auth':
+elif auth_type == 'session_exp_auth':
+    from api.v1.auth.session_exp_auth import SessionExpAuth
     auth = SessionExpAuth()
-if auth_type == 'session_db_auth':
+elif auth_type == 'session_db_auth':
+    from api.v1.auth.session_db_auth import SessionDBAuth
     auth = SessionDBAuth()
 
 
-# Define error handlers for 404, 401, and 403 errors
+# Error handler for 404 - Not Found
 @app.errorhandler(404)
 def not_found(error) -> str:
-    """Not found handler."""
+    """ Not found handler
+    """
     return jsonify({"error": "Not found"}), 404
 
 
+# Error handler for 401 - Unauthorized
 @app.errorhandler(401)
 def unauthorized(error) -> str:
-    """Unauthorized handler."""
+    """ Request unauthorized
+    """
     return jsonify({"error": "Unauthorized"}), 401
 
 
+# Error handler for 403 - Forbidden
 @app.errorhandler(403)
 def forbidden(error) -> str:
-    """Forbidden handler."""
+    """ Request forbidden
+    """
     return jsonify({"error": "Forbidden"}), 403
 
 
-# Define a function to authenticate the user before processing a request
+# Before each request, perform authentication
+# and set current_user in the request object
 @app.before_request
-def authenticate_user():
-    """Authenticates a user before processing a request."""
-    if auth:
-        # Define paths that do not require authentication
-        excluded_paths = [
-            "/api/v1/status/",
-            "/api/v1/unauthorized/",
-            "/api/v1/forbidden/",
-            "/api/v1/auth_session/login/",
-        ]
-        # Check if authentication is required for the current path
-        if auth.require_auth(request.path, excluded_paths):
-            user = auth.current_user(request)
-            # Check if either authorization header or session cookie is present
-            if auth.authorization_header(request) is None and \
-                    auth.session_cookie(request) is None:
-                # If not present, abort with a 401 Unauthorized error
-                abort(401)
-            # Check if the user is authenticated
-            if user is None:
-                # If not authenticated, abort with a 403 Forbidden error
-                abort(403)
-            # Attach the authenticated user to the request
-            request.current_user = user
+def before_request():
+    """ Before request
+    """
+    excluded_paths = ['/api/v1/status/', '/api/v1/unauthorized/',
+                      '/api/v1/forbidden/', '/api/v1/auth_session/login/']
+    if auth and auth.require_auth(request.path, excluded_paths):
+        if (not auth.authorization_header(request) and
+                not auth.session_cookie(request)):
+            # Abort with 401 Unauthorized if no authorization
+            # header or session cookie is present
+            abort(401)
+        if not auth.current_user(request):
+            # Abort with 403 Forbidden if the current user cannot be determined
+            abort(403)
+        # Set the current_user in the request object for further use
+        request.current_user = auth.current_user(request)
 
 
-# Run the Flask app if the script is executed
+# Start the Flask application if this script is executed directly
 if __name__ == "__main__":
+    # Get host and port from environment variables or use default values
     host = getenv("API_HOST", "0.0.0.0")
     port = getenv("API_PORT", "5000")
+    # Run the Flask application
     app.run(host=host, port=port)
